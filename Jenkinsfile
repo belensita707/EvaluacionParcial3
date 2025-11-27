@@ -2,9 +2,13 @@ pipeline {
     agent any
 
     environment {
+       
         SONARQUBE = 'Sonar-Server'
         DEP_CHECK_PATH = "${WORKSPACE}/dependency-check-report"
-        TARGET_URL = "http://sonarqube:9000" 
+        TARGET_URL = "http://172.19.0.2:9000" //  IP de SonarQube
+        
+        // Inyectamos la API Key 
+        NVD_API_KEY = credentials('nvdApiKey')
     }
 
     stages {
@@ -17,14 +21,14 @@ pipeline {
         stage('Instalar Dependencias') {
             steps {
                 echo "Instalando dependencias de Python..."
-                sh 'pip install -r requirements.txt --break-system-packages || echo "Advertencia: Hubo un problema con pip, pero intentaremos continuar..."'
+                sh 'pip install -r requirements.txt --break-system-packages || echo "Advertencia en pip..."'
             }
         }
 
         stage('SonarQube Analysis') {
             steps {
                 script {
-                    def scannerHome = tool 'SonarScanner'
+                    def scannerHome = tool 'SonarQubeScanner'
                     withSonarQubeEnv('Sonar-Server') {
                         sh "${scannerHome}/bin/sonar-scanner -Dsonar.projectKey=ExamenParcial3 -Dsonar.sources=. -Dsonar.python.version=3"
                     }
@@ -34,8 +38,9 @@ pipeline {
 
         stage('OWASP Dependency-Check') {
             steps {
-                // AGREGAMOS --noupdate para que no descargue la BD gigante y no se reinicie Jenkins
-                dependencyCheck additionalArguments: '--format HTML --format XML --noupdate', odcInstallation: 'Default Dependency-Check'
+                echo "Escaneando con API Key de NVD..."
+                
+                dependencyCheck additionalArguments: "--format HTML --format XML --nvdApiKey ${NVD_API_KEY}", odcInstallation: 'DependencyCheck'
             }
             post {
                 always {
@@ -46,7 +51,6 @@ pipeline {
         
         stage('OWASP ZAP (DAST Scan)') {
             steps {
-                // Escaneo dinámico
                 sh '''
                 docker run --network="red-examen" --rm \
                 zaproxy/zap-stable zap-baseline.py \
