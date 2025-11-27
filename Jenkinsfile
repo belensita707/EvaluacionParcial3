@@ -2,12 +2,8 @@ pipeline {
     agent any
 
     environment {
-       
-        SONARQUBE = 'Sonar-Server'
-        DEP_CHECK_PATH = "${WORKSPACE}/dependency-check-report"
-        TARGET_URL = "http://172.19.0.2:9000" //  IP de SonarQube
-        
-        // Inyectamos la API Key 
+        SONARQUBE = 'Sonar-Server' 
+    
         NVD_API_KEY = credentials('nvdApiKey')
     }
 
@@ -20,8 +16,8 @@ pipeline {
 
         stage('Instalar Dependencias') {
             steps {
-                echo "Instalando dependencias de Python..."
-                sh 'pip install -r requirements.txt --break-system-packages || echo "Advertencia en pip..."'
+                echo "Instalando dependencias..."
+                sh 'pip install -r requirements.txt --break-system-packages'
             }
         }
 
@@ -38,8 +34,7 @@ pipeline {
 
         stage('OWASP Dependency-Check') {
             steps {
-                echo "Escaneando con API Key de NVD..."
-                
+                echo "Ejecutando análisis con API Key de NVD..."
                 dependencyCheck additionalArguments: "--format HTML --format XML --nvdApiKey ${NVD_API_KEY}", odcInstallation: 'DependencyCheck'
             }
             post {
