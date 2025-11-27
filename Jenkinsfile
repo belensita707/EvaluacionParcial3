@@ -17,7 +17,6 @@ pipeline {
         stage('Instalar Dependencias') {
             steps {
                 echo "Instalando dependencias de Python..."
-                // Aquí usamos el comando con el desbloqueo de sistema
                 sh 'pip install -r requirements.txt --break-system-packages || echo "Advertencia: Hubo un problema con pip, pero intentaremos continuar..."'
             }
         }
@@ -27,7 +26,6 @@ pipeline {
                 script {
                     def scannerHome = tool 'SonarScanner'
                     withSonarQubeEnv('Sonar-Server') {
-                        // Este es el comando que faltaba para analizar el código
                         sh "${scannerHome}/bin/sonar-scanner -Dsonar.projectKey=ExamenParcial3 -Dsonar.sources=. -Dsonar.python.version=3"
                     }
                 }
@@ -36,8 +34,8 @@ pipeline {
 
         stage('OWASP Dependency-Check') {
             steps {
-                // Este paso falló antes porque el nombre de la herramienta no coincidía
-                dependencyCheck additionalArguments: '--format HTML --format XML', odcInstallation: 'Default Dependency-Check'
+                // AGREGAMOS --noupdate para que no descargue la BD gigante y no se reinicie Jenkins
+                dependencyCheck additionalArguments: '--format HTML --format XML --noupdate', odcInstallation: 'Default Dependency-Check'
             }
             post {
                 always {
@@ -48,7 +46,7 @@ pipeline {
         
         stage('OWASP ZAP (DAST Scan)') {
             steps {
-                // Escaneo dinámico (ignoramos error si encuentra vulnerabilidades, que es la idea)
+                // Escaneo dinámico
                 sh '''
                 docker run --network="red-examen" --rm \
                 zaproxy/zap-stable zap-baseline.py \
