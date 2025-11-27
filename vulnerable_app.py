@@ -9,7 +9,7 @@ app.secret_key = os.urandom(24)
 
 def get_db_connection():
     db_config = {
-        'host': 'mysql-db',  # CAMBIO IMPORTANTE: Usamos el nombre del contenedor
+        'host': 'mysql-db',
         'user': 'root',
         'password': '',
         'database': 'prueba'
@@ -22,7 +22,7 @@ def hash_password(password):
 
 @app.route('/')
 def index():
-    return 'Welcome to the Task Manager Application!'
+    return 'Welcome to the Task Manager Application (SECURE VERSION)!'
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -30,20 +30,16 @@ def login():
         username = request.form['username']
         password = request.form['password']
         conn = get_db_connection()
+        
 
-        # VULNERABILIDAD AQUI
-        if "' OR '" in password:
-            query = f"SELECT * FROM users WHERE username = '{username}' AND password = '{password}'"
-            cur = conn.cursor(buffered=True)
-            cur.execute(query)
-            user = cur.fetchone()
-        else:
-            query = "SELECT * FROM users WHERE username = %s AND password = %s"
-            hashed_password = hash_password(password)
-            cur = conn.cursor(buffered=True)
-            cur.execute(query, (username, hashed_password))
-            user = cur.fetchone()
-
+        
+        query = "SELECT * FROM users WHERE username = %s AND password = %s"
+        hashed_password = hash_password(password)
+        
+        cur = conn.cursor(buffered=True)
+        cur.execute(query, (username, hashed_password))
+        user = cur.fetchone()
+        
         cur.close()
         conn.close()
 
@@ -53,6 +49,7 @@ def login():
             return redirect(url_for('dashboard'))
         else:
             return 'Invalid credentials!'
+            
     return '''
         <form method="post">
             Username: <input type="text" name="username"><br>
@@ -65,9 +62,10 @@ def login():
 def dashboard():
     if 'user_id' not in session:
         return redirect(url_for('login'))
-
+    
     user_id = session['user_id']
     conn = get_db_connection()
+    # Usamos dictionary=True para manejar mejor los datos
     cur = conn.cursor(dictionary=True)
     cur.execute("SELECT * FROM tasks WHERE user_id = %s", (user_id,))
     tasks = cur.fetchall()
@@ -92,26 +90,31 @@ def dashboard():
 def add_task():
     if 'user_id' not in session:
         return redirect(url_for('login'))
+    
     task = request.form['task']
     user_id = session['user_id']
+
     conn = get_db_connection()
     cur = conn.cursor()
     cur.execute("INSERT INTO tasks (user_id, tasks) VALUES (%s, %s)", (user_id, task))
     conn.commit()
     cur.close()
     conn.close()
+
     return redirect(url_for('dashboard'))
 
 @app.route('/delete_task/<int:task_id>')
 def delete_task(task_id):
     if 'user_id' not in session:
         return redirect(url_for('login'))
+
     conn = get_db_connection()
     cur = conn.cursor()
     cur.execute("DELETE FROM tasks WHERE id = %s", (task_id,))
     conn.commit()
     cur.close()
     conn.close()
+
     return redirect(url_for('dashboard'))
 
 @app.route('/admin')
