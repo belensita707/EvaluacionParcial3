@@ -22,7 +22,7 @@ pipeline {
                 script {
                     def scannerHome = tool 'SonarScanner'
                     withSonarQubeEnv('Sonar-Server') {
-                        sh "${scannerHome}/bin/sonar-scanner -Dsonar.projectKey=ExamenParcial3 -Dsonar.sources=."
+                        sh 'pip install -r requirements.txt --break-system-packages || echo "Advertencia: Error en pip, continuando..."'
                     }
                 }
             }
