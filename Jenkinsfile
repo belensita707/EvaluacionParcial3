@@ -2,8 +2,9 @@ pipeline {
     agent any
 
     environment {
-        SONARQUBE = 'Sonar-Server' 
-    
+        SONARQUBE = 'Sonar-Server'
+        DEP_CHECK_PATH = "${WORKSPACE}/dependency-check-report"
+        TARGET_URL = "http://172.18.0.3:9000" 
         NVD_API_KEY = credentials('nvdApiKey')
     }
 
@@ -34,8 +35,8 @@ pipeline {
 
         stage('OWASP Dependency-Check') {
             steps {
-                echo "Ejecutando análisis con API Key de NVD..."
-                dependencyCheck additionalArguments: "--format HTML --format XML --nvdApiKey ${NVD_API_KEY}", odcInstallation: 'DependencyCheck'
+                
+                dependencyCheck additionalArguments: "--format HTML --format XML --noupdate --nvdApiKey ${NVD_API_KEY}", odcInstallation: 'DependencyCheck'
             }
             post {
                 always {
